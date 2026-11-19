@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LA UNE – Être cité par les IA</title>
+<meta name="description" content="LA UNE, l'assistante qui fait connaître votre entreprise auprès de ChatGPT, Gemini et des autres IA.">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="LA UNE">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+:root{--ink:#F4F2FA;--mute:#9A93B0;--glass:rgba(255,255,255,.07);--edge:rgba(255,255,255,.13);--violet:#A78BFA;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:var(--ink);font:16px/1.5 "Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+body{background:radial-gradient(120% 60% at 50% 12%,#0B1240 0%,#000 55%) fixed}
+.app{max-width:820px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;align-items:center;gap:14px;
+  padding:calc(14px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.top{width:100%;display:flex;align-items:center;justify-content:center;position:relative}
+.pill{display:flex;flex-direction:column;align-items:center;padding:8px 26px;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border:1px solid var(--edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 6px 20px rgba(0,0,0,.6)}
+.pill b{font-weight:600;letter-spacing:.04em}
+.pill span{font-size:.8rem;color:var(--mute)}
+.menu{position:absolute;right:0;top:50%;transform:translateY(-50%)}
+.menu button{width:40px;height:40px;border-radius:50%;border:1px solid var(--edge);background:var(--glass);color:var(--ink);cursor:pointer;font-size:20px;line-height:1}
+.menu-list{position:absolute;right:0;top:46px;min-width:240px;background:#0D0D14;border:1px solid var(--edge);border-radius:14px;padding:6px;display:none;z-index:5;box-shadow:0 12px 30px rgba(0,0,0,.7)}
+.menu-list.open{display:block}
+.menu-list button,.menu-list a{display:block;width:100%;text-align:left;border:0;background:none;color:var(--ink);font:inherit;font-size:.92rem;padding:10px 12px;border-radius:10px;cursor:pointer;text-decoration:none;height:auto}
+.menu-list button:hover,.menu-list a:hover{background:var(--glass)}
+.hero{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;margin-top:6px}
+.orbwrap{position:relative;display:grid;place-items:center}
+.orbwrap::before{content:"";position:absolute;inset:-22%;border-radius:50%;background:radial-gradient(circle,rgba(70,100,255,.85) 0%,rgba(40,60,240,.45) 38%,rgba(20,30,180,0) 68%);filter:blur(10px);opacity:.75;pointer-events:none}
+.orb{position:relative;width:min(56vw,230px);height:auto;border-radius:50%;-webkit-mask-image:radial-gradient(circle,#000 58%,transparent 71%);mask-image:radial-gradient(circle,#000 58%,transparent 71%);filter:brightness(1.45) saturate(1.2) contrast(1.05)}
+.busy .orbwrap::before{animation:halo 2.4s ease-in-out infinite}
+@keyframes halo{0%,100%{opacity:1;transform:scale(1.06)}50%{opacity:.08;transform:scale(.92)}}
+.hi{color:var(--mute);font-size:.95rem;margin:4px 0 0}
+.title{font-weight:600;font-size:clamp(1.5rem,5.6vw,2.1rem);line-height:1.15;margin:0;max-width:16ch;letter-spacing:-.01em}
+.chatting .orb{width:70px}
+.chatting .orbwrap::before{inset:-35%}
+.chatting .hi,.chatting .title{display:none}
+.log{width:100%;flex:1 1 auto;display:none;flex-direction:column;gap:10px;overflow-y:auto;padding:2px}
+.chatting .log{display:flex}
+.msg{max-width:88%;padding:10px 14px;border-radius:18px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:.96rem;line-height:1.5}
+.me{align-self:flex-end;background:linear-gradient(135deg,#7C3AED,#C026D3);color:#fff;border-bottom-right-radius:6px}
+.ai{align-self:flex-start;background:var(--glass);border:1px solid var(--edge);border-bottom-left-radius:6px}
+.ai a{color:#C4B5FD}
+.typing{color:var(--mute);font-style:italic}
+.chips{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:600px){.chips{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.chatting .chips{display:none}
+.chip{display:flex;align-items:center;gap:9px;min-width:0;padding:5px 12px 5px 5px;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid var(--edge);color:var(--ink);font:inherit;font-size:.86rem;font-weight:500;text-align:left;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.55)}
+.chip>span:last-child{min-width:0;line-height:1.2}
+.ico{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#0A0A0F;border:1px solid var(--edge);color:var(--violet)}
+.ico svg,.round svg{width:18px;height:18px}
+.bar{width:100%;display:flex;align-items:flex-end;gap:10px;position:sticky;bottom:calc(10px + env(safe-area-inset-bottom))}
+.input{flex:1;min-width:0;display:flex;align-items:flex-end;gap:6px;padding:5px;border-radius:26px;background:rgba(20,20,28,.92);border:1px solid var(--edge);box-shadow:0 8px 24px rgba(0,0,0,.6);backdrop-filter:blur(10px)}
+.input:focus-within{border-color:rgba(167,139,250,.6)}
+textarea{flex:1;min-width:0;height:42px;max-height:140px;resize:none;background:transparent;border:0;padding:10px 6px;color:var(--ink);font:inherit;font-size:1rem;line-height:1.4;outline:none}
+textarea::placeholder{color:var(--mute)}
+.round{flex:none;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:var(--ink);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.2),rgba(255,255,255,.05));border:1px solid var(--edge)}
+.round:disabled{opacity:.45;cursor:not-allowed}
+.mic{flex:none;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;cursor:pointer;border:0;color:#fff;background:radial-gradient(circle at 30% 25%,#F0ABFC,#C026D3 45%,#BE185D 80%);box-shadow:0 0 26px rgba(217,70,239,.45)}
+.mic svg{width:24px;height:24px}
+.mic.live{animation:micp 1.2s ease-in-out infinite}
+@keyframes micp{50%{box-shadow:0 0 0 10px rgba(217,70,239,.18),0 0 34px rgba(217,70,239,.7)}}
+.foot{font-size:.75rem;color:var(--mute);text-align:center}
+.foot a{color:var(--mute)}
+button:focus-visible,a:focus-visible{outline:2px solid #C4B5FD;outline-offset:2px}
+@media (prefers-reduced-motion: reduce){.mic.live{animation:none;outline:3px solid #F0ABFC}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main class="app" id="app">
+  <div class="top">
+    <div class="pill"><b>LA UNE</b><span>AI Assistant</span></div>
+    <div class="menu">
+      <button id="menuBtn" type="button" aria-label="Menu" aria-expanded="false">⋯</button>
+      <div class="menu-list" id="menuList" role="menu">
+        <button type="button" id="installBtn" hidden>Installer l'application</button>
+        <button type="button" id="newBiz">Inscrire une autre entreprise</button>
+        <a href="confidentialite.html">Confidentialité</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <span class="orbwrap"><img class="orb" src="orb.webp" alt="" width="360" height="360"></span>
+    <p class="hi">Salut, je suis LA UNE !</p>
+    <h1 class="title">Comment puis-je vous aider aujourd'hui ?</h1>
+  </div>
+
+  <div class="log" id="log" aria-live="polite"></div>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="bar">
+    <div class="input">
+      <textarea id="input" rows="1" placeholder="Message…" aria-label="Votre message"></textarea>
+      <button class="round" id="send" type="button" aria-label="Envoyer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
+    <button class="mic" id="mic" type="button" aria-label="Parler" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+  </div>
+  <p class="foot">LA UNE peut se tromper. Vos informations servent uniquement à préparer votre dossier. <a href="confidentialite.html">Confidentialité</a></p>
+</main>
+
+<script>
+const API = 'https://appn8ncloud81.app.n8n.cloud/webhook/la-une-chat';
+const $ = id => document.getElementById(id);
+const store = { get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } }, set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} } };
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12)).replace(/[^a-zA-Z0-9_-]/g, '');
+let session = store.get('laune-session', null);
+if (!session){ session = newId(); store.set('laune-session', session); }
+let history = store.get('laune-history-' + session, []);
+let sending = false;
+
+const CHIPS = [
+  ['Être cité par les IA', 'Bonjour, je veux que mon entreprise soit citée par les IA comme ChatGPT.', '<path d="m4 20 10-10M13 4l1 2 2 1-2 1-1 2-1-2-2-1 2-1zM19 10l.6 1.4L21 12l-1.4.6L19 14l-.6-1.4L17 12l1.4-.6z"/>'],
+  ['Comment ça marche ?', 'Comment ça marche, et que faites-vous pour que je sois cité par les IA ?', '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/>'],
+  ['Où en est mon dossier ?', 'Où en est mon dossier ?', '<path d="M4 20V14M9 20V9M14 20v-7M19 20V5"/>'],
+  ['Référencement local', "Je veux être recommandé par les IA quand quelqu'un cherche mon métier dans ma ville.", '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>'],
+  ['Mon site internet', "J'ai un site internet, pouvez-vous en tenir compte ?", '<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18M8 21h8"/>'],
+  ["Je n'ai pas de site", "Je n'ai pas de site internet, est-ce que je peux quand même être cité ?", '<path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="9"/>']
+];
+$('chips').innerHTML = CHIPS.map(([l, q, d]) => `<button class="chip" type="button" data-q="${q.replace(/"/g, '&quot;')}"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg></span><span>${l}</span></button>`).join('');
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const linkify = s => esc(s).replace(/https?:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+function render(typing){
+  $('app').classList.toggle('chatting', history.length > 0 || !!typing);
+  $('log').innerHTML = history.map(m => `<div class="msg ${m.role === 'user' ? 'me' : 'ai'}">${m.role === 'user' ? esc(m.content) : linkify(m.content)}</div>`).join('') + (typing ? '<div class="msg ai typing">LA UNE réfléchit…</div>' : '');
+  $('log').scrollTop = $('log').scrollHeight;
+  window.scrollTo(0, document.body.scrollHeight);
+}
+function save(){ store.set('laune-history-' + session, history.slice(-40)); }
+
+async function send(text){
+  text = String(text || $('input').value).trim();
+  if (!text || sending) return;
+  sending = true; $('send').disabled = true; $('app').classList.add('busy');
+  $('input').value = ''; grow();
+  const past = history.slice(-16);
+  history.push({ role:'user', content:text }); save(); render(true);
+  let reply = '';
+  try {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 90000);
+    const r = await fetch(API, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ sessionId: session, message: text, history: past }), signal: ctl.signal });
+    clearTimeout(t);
+    const j = await r.json().catch(() => ({}));
+    reply = (j && j.reply) ? String(j.reply) : '';
+    if (!r.ok || !reply) throw new Error('vide');
+  } catch (e){
+    reply = navigator.onLine === false ? "Vous semblez hors connexion. Vérifiez votre internet puis renvoyez votre message." : "Je n'ai pas pu répondre pour le moment. Réessayez dans un instant.";
+  }
+  history.push({ role:'assistant', content: reply }); save();
+  sending = false; $('send').disabled = false; $('app').classList.remove('busy');
+  render(false); $('input').focus();
+}
+
+// Annonces de LA UNE (plan prêt, travail terminé, client cité…)
+const NEWS = 'https://appn8ncloud81.app.n8n.cloud/webhook/la-une-nouvelles';
+let checking = false;
+async function checkNews(){
+  if (checking || sending || !history.length || document.hidden) return;
+  checking = true;
+  try {
+    const r = await fetch(NEWS, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ sessionId: session }) });
+    const j = await r.json().catch(() => ({}));
+    const m = j && j.message ? String(j.message).trim() : '';
+    if (m && !sending){
+      history.push({ role:'assistant', content: m }); save(); render(false);
+      try { if ('Notification' in window && Notification.permission === 'granted') new Notification('LA UNE', { body: m.slice(0, 140), icon: 'icons/icon-192.png' }); } catch(e){}
+    }
+  } catch(e){}
+  checking = false;
+}
+checkNews();
+setInterval(checkNews, 5 * 60 * 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkNews(); });
+
+function grow(){ const t = $('input'); t.style.height = '42px'; t.style.height = Math.min(140, t.scrollHeight) + 'px'; }
+$('input').addEventListener('input', grow);
+$('input').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); send(); } });
+$('send').addEventListener('click', () => send());
+$('chips').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (b) send(b.dataset.q); });
+
+// Menu
+$('menuBtn').addEventListener('click', () => { const o = $('menuList').classList.toggle('open'); $('menuBtn').setAttribute('aria-expanded', String(o)); });
+document.addEventListener('click', e => { if (!e.target.closest('.menu')) { $('menuList').classList.remove('open'); $('menuBtn').setAttribute('aria-expanded', 'false'); } });
+$('newBiz').addEventListener('click', () => {
+  if (!confirm("Inscrire une autre entreprise ? La conversation actuelle reste enregistrée de notre côté.")) return;
+  session = newId(); store.set('laune-session', session); history = []; save(); render(false); $('menuList').classList.remove('open');
+});
+
+// Dictée vocale (navigateurs compatibles)
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR){
+  const rec = new SR(); rec.lang = 'fr-FR'; rec.interimResults = true; rec.continuous = false;
+  let base = '', live = false;
+  $('mic').hidden = false;
+  rec.onresult = e => { let txt = ''; for (const r of e.results) txt += r[0].transcript; $('input').value = (base + ' ' + txt).trim(); grow(); };
+  rec.onend = () => { live = false; $('mic').classList.remove('live'); if ($('input').value.trim()) send(); };
+  rec.onerror = () => { live = false; $('mic').classList.remove('live'); };
+  $('mic').addEventListener('click', () => { if (live){ rec.stop(); return; } base = $('input').value.trim(); try { rec.start(); live = true; $('mic').classList.add('live'); } catch(e){} });
+}
+
+// Installation (PWA)
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('installBtn').hidden = false; });
+$('installBtn').addEventListener('click', async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice.catch(() => {}); installEvt = null; $('installBtn').hidden = true; });
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+
+render(false);
+</script>
+</body>
+</html>
