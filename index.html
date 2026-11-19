@@ -72,6 +72,23 @@ textarea::placeholder{color:var(--mute)}
 button:focus-visible,a:focus-visible{outline:2px solid #C4B5FD;outline-offset:2px}
 @media (prefers-reduced-motion: reduce){.mic.live{animation:none;outline:3px solid #F0ABFC}}
 [hidden]{display:none!important}
+.drawer{position:fixed;inset:0;z-index:20;display:none}
+.drawer.open{display:block}
+.drawer .shade{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+.drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(360px,88vw);background:#0D0D14;border-left:1px solid var(--edge);display:flex;flex-direction:column;padding:16px 12px calc(16px + env(safe-area-inset-bottom))}
+.drawer .head{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 12px}
+.drawer h2{margin:0;font-size:1.05rem;font-weight:600}
+.drawer .x{width:36px;height:36px;border-radius:50%;border:1px solid var(--edge);background:var(--glass);color:var(--ink);font-size:18px;cursor:pointer}
+.drawer .new{display:flex;align-items:center;gap:8px;width:100%;border:1px solid var(--edge);background:var(--glass);color:var(--ink);font:inherit;font-size:.95rem;padding:12px 14px;border-radius:12px;cursor:pointer;margin-bottom:10px}
+.chatlist{list-style:none;margin:0;padding:0;overflow-y:auto;flex:1}
+.chatlist li{display:flex;align-items:center;gap:4px;border-radius:12px}
+.chatlist li.on{background:var(--glass);box-shadow:inset 3px 0 0 #6D7CFF}
+.chatlist .go{flex:1;min-width:0;text-align:left;border:0;background:none;color:var(--ink);font:inherit;padding:11px 12px;cursor:pointer;border-radius:12px}
+.chatlist .go b{display:block;font-weight:500;font-size:.93rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chatlist .go small{color:#9C98B0;font-size:.78rem}
+.chatlist .del{flex:none;width:34px;height:34px;border:0;background:none;color:#9C98B0;font-size:16px;cursor:pointer;border-radius:50%}
+.chatlist .del:hover{background:var(--glass);color:var(--ink)}
+.chatlist .empty{color:#9C98B0;font-size:.9rem;padding:12px}
 </style>
 </head>
 <body>
@@ -82,7 +99,8 @@ button:focus-visible,a:focus-visible{outline:2px solid #C4B5FD;outline-offset:2p
       <button id="menuBtn" type="button" aria-label="Menu" aria-expanded="false">⋯</button>
       <div class="menu-list" id="menuList" role="menu">
         <button type="button" id="installBtn" hidden>Installer l'application</button>
-        <button type="button" id="newBiz">Inscrire une autre entreprise</button>
+        <button type="button" id="openChats">Mes conversations</button>
+        <button type="button" id="newBiz">Nouvelle conversation</button>
         <a href="confidentialite.html">Confidentialité</a>
       </div>
     </div>
@@ -107,6 +125,15 @@ button:focus-visible,a:focus-visible{outline:2px solid #C4B5FD;outline-offset:2p
   </div>
   <p class="foot">LA UNE peut se tromper. Vos informations servent uniquement à préparer votre dossier. <a href="confidentialite.html">Confidentialité</a></p>
 </main>
+
+<div class="drawer" id="drawer" aria-hidden="true">
+  <div class="shade" id="drawerShade"></div>
+  <aside class="panel" role="dialog" aria-label="Mes conversations">
+    <div class="head"><h2>Mes conversations</h2><button class="x" id="drawerClose" type="button" aria-label="Fermer">✕</button></div>
+    <button class="new" id="drawerNew" type="button"><span aria-hidden="true">＋</span> Nouvelle conversation</button>
+    <ul class="chatlist" id="chatList"></ul>
+  </aside>
+</div>
 
 <script>
 const API = 'https://appn8ncloud81.app.n8n.cloud/webhook/la-une-chat';
@@ -136,7 +163,15 @@ function render(typing){
   $('log').scrollTop = $('log').scrollHeight;
   window.scrollTo(0, document.body.scrollHeight);
 }
-function save(){ store.set('laune-history-' + session, history.slice(-40)); }
+function save(){
+  store.set('laune-history-' + session, history.slice(-40));
+  if (!history.length) return;
+  const list = store.get('laune-sessions', []).filter(c => c.id !== session);
+  const first = history.find(m => m.role === 'user');
+  list.unshift({ id: session, title: first ? String(first.content).slice(0, 60) : 'Conversation', updated: Date.now() });
+  store.set('laune-sessions', list.slice(0, 50));
+}
+if (history.length && !store.get('laune-sessions', []).some(c => c.id === session)) save();
 
 async function send(text){
   text = String(text || $('input').value).trim();
@@ -168,10 +203,12 @@ async function checkNews(){
   if (checking || sending || !history.length || document.hidden) return;
   checking = true;
   try {
-    const r = await fetch(NEWS, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ sessionId: session }) });
+    const sid = session;
+    const r = await fetch(NEWS, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ sessionId: sid }) });
     const j = await r.json().catch(() => ({}));
     const m = j && j.message ? String(j.message).trim() : '';
-    if (m && !sending){
+    if (m && sid !== session){ const h = store.get('laune-history-' + sid, []); h.push({ role:'assistant', content: m }); store.set('laune-history-' + sid, h.slice(-40)); }
+    else if (m && !sending){
       history.push({ role:'assistant', content: m }); save(); render(false);
       try { if ('Notification' in window && Notification.permission === 'granted') new Notification('LA UNE', { body: m.slice(0, 140), icon: 'icons/icon-192.png' }); } catch(e){}
     }
@@ -191,10 +228,35 @@ $('chips').addEventListener('click', e => { const b = e.target.closest('[data-q]
 // Menu
 $('menuBtn').addEventListener('click', () => { const o = $('menuList').classList.toggle('open'); $('menuBtn').setAttribute('aria-expanded', String(o)); });
 document.addEventListener('click', e => { if (!e.target.closest('.menu')) { $('menuList').classList.remove('open'); $('menuBtn').setAttribute('aria-expanded', 'false'); } });
-$('newBiz').addEventListener('click', () => {
-  if (!confirm("Inscrire une autre entreprise ? La conversation actuelle reste enregistrée de notre côté.")) return;
-  session = newId(); store.set('laune-session', session); history = []; save(); render(false); $('menuList').classList.remove('open');
+function openChat(id){
+  if (sending) return;
+  session = id; store.set('laune-session', session);
+  history = store.get('laune-history-' + session, []);
+  render(false); closeDrawer(); checkNews();
+}
+function newChat(){ openChat(newId()); $('menuList').classList.remove('open'); $('input').focus(); }
+const fmtDate = t => { const d = new Date(t), n = new Date(); return d.toDateString() === n.toDateString() ? d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' }) : d.toLocaleDateString('fr-FR', { day:'numeric', month:'short' }); };
+function renderChats(){
+  const list = store.get('laune-sessions', []);
+  $('chatList').innerHTML = list.length ? list.map(c => `<li class="${c.id === session ? 'on' : ''}"><button class="go" type="button" data-id="${esc(c.id)}"><b>${esc(c.title)}</b><small>${fmtDate(c.updated)}</small></button><button class="del" type="button" data-del="${esc(c.id)}" aria-label="Retirer de la liste">✕</button></li>`).join('') : '<li class="empty">Aucune conversation pour le moment.</li>';
+}
+function openDrawer(){ renderChats(); $('drawer').classList.add('open'); $('drawer').setAttribute('aria-hidden', 'false'); $('menuList').classList.remove('open'); }
+function closeDrawer(){ $('drawer').classList.remove('open'); $('drawer').setAttribute('aria-hidden', 'true'); }
+$('openChats').addEventListener('click', openDrawer);
+$('drawerClose').addEventListener('click', closeDrawer);
+$('drawerShade').addEventListener('click', closeDrawer);
+$('drawerNew').addEventListener('click', newChat);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+$('chatList').addEventListener('click', e => {
+  const go = e.target.closest('[data-id]'); if (go){ if (!sending) openChat(go.dataset.id); return; }
+  const del = e.target.closest('[data-del]'); if (!del) return;
+  if (!confirm("Retirer cette conversation de la liste ? Votre dossier reste enregistré chez nous.")) return;
+  const id = del.dataset.del;
+  store.set('laune-sessions', store.get('laune-sessions', []).filter(c => c.id !== id));
+  try { localStorage.removeItem('laune-history-' + id); } catch(e){}
+  if (id === session) openChat(newId()); else renderChats();
 });
+$('newBiz').addEventListener('click', newChat);
 
 // Dictée vocale (navigateurs compatibles)
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
